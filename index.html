@@ -1094,15 +1094,6 @@
         let currentStranger = null;
         let mediaStream = null;
         
-        // Simulated user profiles
-        const strangers = [
-            { name: "Alex", country: "USA", interests: ["Music", "Travel", "Movies"] },
-            { name: "Sophie", country: "France", interests: ["Art", "Food", "Photography"] },
-            { name: "Ravi", country: "India", interests: ["Tech", "Cricket", "Cooking"] },
-            { name: "Yuki", country: "Japan", interests: ["Anime", "Gaming", "Nature"] },
-            { name: "Carlos", country: "Brazil", interests: ["Soccer", "Dancing", "Beaches"] }
-        ];
-        
         // Initialize the app
         function initApp() {
             // Check if user already verified age
@@ -1188,6 +1179,19 @@
         
         // Text chat functions
         function startTextChat() {
+    isTextChatActive = true;
+    startTextBtn.disabled = true;
+    stopTextBtn.disabled = false;
+    nextTextBtn.disabled = false;
+    messageInput.disabled = false;
+    sendBtn.disabled = false;
+
+    textStatus.classList.add('connected');
+    textStatusText.textContent = 'Connected';
+
+    messagesContainer.innerHTML = '';
+    addSystemMessage('🔗 Connected to a stranger!');
+}
             isTextChatActive = true;
             startTextBtn.disabled = true;
             stopTextBtn.disabled = false;
@@ -1271,7 +1275,7 @@
             }, 1000 + Math.random() * 1500);
         }
         
-        function simulateStrangerMessage() {
+        // simulateStrangerMessage removed {
             if (!isTextChatActive) return;
             
             const responses = [
@@ -1491,11 +1495,11 @@
   let socket;
 
   function connectWebSocket() {
-    const url = 'wss://strango-backend.onrender.com'; // Replace with your actual Render URL
+    const url = 'wss://strango-backend-6fd2.onrender.com';
     socket = new WebSocket(url);
 
     socket.addEventListener("open", () => {
-      console.log("✅ Connected");
+      console.log("✅ Connected to WebSocket server");
     });
 
     socket.addEventListener("message", (event) => {
@@ -1503,11 +1507,11 @@
     });
 
     socket.addEventListener("close", () => {
-      console.log("🔌 Disconnected");
+      console.log("🔌 Disconnected from WebSocket server");
     });
 
     socket.addEventListener("error", (err) => {
-      console.error("❗ Error:", err);
+      console.error("❗ WebSocket error:", err);
     });
   }
 
@@ -1525,4 +1529,5 @@
   };
 </script>
 </body>
+
 </html>
