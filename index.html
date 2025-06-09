@@ -1485,11 +1485,13 @@
         
         // Initialize the app when page loads
         window.onload = initApp;
+    </script>
 
+<script>
   let socket;
 
   function connectWebSocket() {
-    const url = 'wss://strango-backend.onrender.com'; // Your real Render URL
+    const url = 'wss://strango-backend.onrender.com'; // Replace with your actual Render URL
     socket = new WebSocket(url);
 
     socket.addEventListener("open", () => {
@@ -1511,7 +1513,7 @@
 
   function sendMessage() {
     const message = messageInput.value.trim();
-    if (!message || socket.readyState !== WebSocket.OPEN) return;
+    if (!message || !socket || socket.readyState !== WebSocket.OPEN) return;
     addMessage(message, "user");
     socket.send(message);
     messageInput.value = "";
@@ -1521,6 +1523,6 @@
     initApp();
     connectWebSocket();
   };
-	</script>
+</script>
 </body>
 </html>
