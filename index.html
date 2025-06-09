@@ -1067,10 +1067,8 @@ function initApp() {
     }, 2000);
 
     // Update stats (optional or simulated)
-    setInterval(() => {
-        document.getElementById('onlineUsers').textContent = Math.floor(1200 + Math.random() * 100).toLocaleString();
-        document.getElementById('activeChats').textContent = Math.floor(600 + Math.random() * 100).toLocaleString();
-    }, 5000);
+    document.getElementById('onlineUsers').textContent = 'N/A';
+document.getElementById('activeChats').textContent = 'N/A';
 }
 
 
@@ -1177,6 +1175,48 @@ function backToSelection() {
     document.getElementById('textChatInterface').classList.add('hidden');
     document.getElementById('videoChatInterface').classList.add('hidden');
     document.getElementById('chatSelection').classList.remove('hidden');
+}
+
+
+function startTextChat() {
+    isTextChatActive = true;
+    startTextBtn.disabled = true;
+    stopTextBtn.disabled = false;
+    nextTextBtn.disabled = false;
+    messageInput.disabled = false;
+    sendBtn.disabled = false;
+
+    textStatus.classList.remove('disconnected');
+    textStatus.classList.add('connected');
+    textStatusText.textContent = 'Connected';
+
+    messagesContainer.innerHTML = '';
+    addSystemMessage('🎉 Welcome to Strango Text Chat!');
+    addSystemMessage('Click "Start Chat" below to connect with a random stranger!');
+}
+
+function stopTextChat() {
+    isTextChatActive = false;
+    if (socket) socket.close();
+
+    startTextBtn.disabled = false;
+    stopTextBtn.disabled = true;
+    nextTextBtn.disabled = true;
+    messageInput.disabled = true;
+    sendBtn.disabled = true;
+
+    textStatus.classList.remove('connected');
+    textStatus.classList.add('disconnected');
+    textStatusText.textContent = 'Disconnected';
+
+    addSystemMessage('❌ Chat ended.');
+}
+
+function nextStrangerText() {
+    addSystemMessage('🔄 Searching for a new stranger...');
+    if (socket) socket.close();
+    connectWebSocket();
+    addSystemMessage('⌛ Waiting for a stranger to connect...');
 }
 
 </script>
