@@ -1047,487 +1047,67 @@
         </div>
     </div>
 
-    <script>
-        // DOM Elements
-        const loadingScreen = document.getElementById('loadingScreen');
-        const ageModal = document.getElementById('ageModal');
-        const chatSelection = document.getElementById('chatSelection');
-        const textChatInterface = document.getElementById('textChatInterface');
-        const videoChatInterface = document.getElementById('videoChatInterface');
-        
-        // Text chat elements
-        const messagesContainer = document.getElementById('messagesContainer');
-        const messageInput = document.getElementById('messageInput');
-        const sendBtn = document.getElementById('sendBtn');
-        const startTextBtn = document.getElementById('startTextBtn');
-        const stopTextBtn = document.getElementById('stopTextBtn');
-        const nextTextBtn = document.getElementById('nextTextBtn');
-        const typingIndicator = document.getElementById('typingIndicator');
-        const textStatus = document.getElementById('textStatus');
-        const textStatusText = document.getElementById('textStatusText');
-        
-        // Video chat elements
-        const remoteVideo = document.getElementById('remoteVideo');
-        const localVideo = document.getElementById('localVideo');
-        const videoPlaceholder = document.getElementById('videoPlaceholder');
-        const startVideoBtn = document.getElementById('startVideoBtn');
-        const stopVideoBtn = document.getElementById('stopVideoBtn');
-        const nextVideoBtn = document.getElementById('nextVideoBtn');
-        const videoStatus = document.getElementById('videoStatus');
-        const videoStatusText = document.getElementById('videoStatusText');
-        
-        // Video chat text elements
-        const videoMessagesContainer = document.getElementById('videoMessagesContainer');
-        const videoMessageInput = document.getElementById('videoMessageInput');
-        const videoSendBtn = document.getElementById('videoSendBtn');
-        
-        // Statistics elements
-        const onlineUsers = document.getElementById('onlineUsers');
-        const activeChats = document.getElementById('activeChats');
-        const countries = document.getElementById('countries');
-        const totalConnections = document.getElementById('totalConnections');
-        
-        // App state
-        let isAgeVerified = false;
-        let isTextChatActive = false;
-        let isVideoChatActive = false;
-        let currentStranger = null;
-        let mediaStream = null;
-        
-        // Initialize the app
-        function initApp() {
-            // Check if user already verified age
-            const verified = localStorage.getItem('ageVerified');
-            if (verified === 'true') {
-                ageModal.classList.add('hidden');
-                showChatSelection();
-            }
-            
-            // Simulate loading
-            setTimeout(() => {
-                loadingScreen.style.opacity = '0';
-                setTimeout(() => {
-                    loadingScreen.classList.add('hidden');
-                }, 500);
-            }, 2000);
-            
-            // Update stats with live data
-            updateLiveStats();
-            
-            // Event listeners
-            messageInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    sendMessage();
-                }
-            });
-            
-            videoMessageInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    sendVideoMessage();
-                }
-            });
-        }
-        
-        // Verify user age
-        function verifyAge(isOver18) {
-            if (isOver18) {
-                localStorage.setItem('ageVerified', 'true');
-                ageModal.classList.add('hidden');
-                showChatSelection();
-            } else {
-                alert('You must be 18 or older to use this service. Redirecting...');
-                setTimeout(() => {
-                    window.location.href = 'https://www.google.com';
-                }, 2000);
-            }
-        }
-        
-        // Show chat selection screen
-        function showChatSelection() {
-            chatSelection.classList.remove('hidden');
-        }
-        
-        // Select chat type
-        function selectChatType(type) {
-            chatSelection.classList.add('hidden');
-            
-            if (type === 'text') {
-                textChatInterface.classList.remove('hidden');
-            } else {
-                videoChatInterface.classList.remove('hidden');
-            }
-        }
-        
-        // Go back to selection screen
-        function backToSelection() {
-            if (isTextChatActive) stopTextChat();
-            if (isVideoChatActive) stopVideoChat();
-            
-            textChatInterface.classList.add('hidden');
-            videoChatInterface.classList.add('hidden');
-            chatSelection.classList.remove('hidden');
-        }
-        
-        // Update live statistics
-        function updateLiveStats() {
-            // Simulate live changing stats
-            setInterval(() => {
-                onlineUsers.textContent = Math.floor(1200 + Math.random() * 100).toLocaleString();
-                activeChats.textContent = Math.floor(600 + Math.random() * 100).toLocaleString();
-            }, 5000);
-        }
-        
-        // Text chat functions
-        function startTextChat() {
-    isTextChatActive = true;
-    startTextBtn.disabled = true;
-    stopTextBtn.disabled = false;
-    nextTextBtn.disabled = false;
-    messageInput.disabled = false;
-    sendBtn.disabled = false;
-
-    textStatus.classList.add('connected');
-    textStatusText.textContent = 'Connected';
-
-    messagesContainer.innerHTML = '';
-    addSystemMessage('🔗 Connected to a stranger!');
-}
-            isTextChatActive = true;
-            startTextBtn.disabled = true;
-            stopTextBtn.disabled = false;
-            nextTextBtn.disabled = false;
-            messageInput.disabled = false;
-            sendBtn.disabled = false;
-            
-            textStatus.classList.add('connected');
-            textStatusText.textContent = 'Connected';
-            
-            // Clear previous messages
-            messagesContainer.innerHTML = '';
-            
-            // Add system message
-            addSystemMessage('Connecting you with a random stranger...');
-            
-            // Simulate connection delay
-            setTimeout(() => {
-                // Select a random stranger
-                currentStranger = strangers[Math.floor(Math.random() * strangers.length)];
-                
-                // Add system message
-                addSystemMessage(`You're now connected with ${currentStranger.name} from ${currentStranger.country}! Say hello!`);
-                
-                // Simulate stranger typing
-                setTimeout(() => {
-                    simulateStrangerMessage();
-                }, 2000);
-            }, 1500);
-        }
-        
-        function stopTextChat() {
-            isTextChatActive = false;
-            startTextBtn.disabled = false;
-            stopTextBtn.disabled = true;
-            nextTextBtn.disabled = true;
-            messageInput.disabled = true;
-            sendBtn.disabled = true;
-            
-            textStatus.classList.remove('connected');
-            textStatusText.textContent = 'Disconnected';
-            
-            addSystemMessage('Chat disconnected. Click "Start Chat" to begin a new conversation.');
-        }
-        
-        function nextTextChat() {
-            stopTextChat();
-            setTimeout(startTextChat, 500);
-        }
-        
-        function sendMessage() {
-            const message = messageInput.value.trim();
-            if (!message) return;
-            
-            // Add user message
-            addMessage(message, 'user');
-            messageInput.value = '';
-            
-            // Simulate typing indicator
-            typingIndicator.style.display = 'flex';
-            
-            // Simulate stranger response after delay
-            setTimeout(() => {
-                typingIndicator.style.display = 'none';
-                simulateStrangerMessage();
-            }, 1500 + Math.random() * 2000);
-        }
-        
-        // Video chat text functions
-        function sendVideoMessage() {
-            const message = videoMessageInput.value.trim();
-            if (!message) return;
-            
-            // Add user message
-            addVideoMessage(message, 'user');
-            videoMessageInput.value = '';
-            
-            // Simulate stranger response after delay
-            setTimeout(() => {
-                simulateVideoStrangerMessage();
-            }, 1000 + Math.random() * 1500);
-        }
-        
-        // simulateStrangerMessage removed {
-            if (!isTextChatActive) return;
-            
-            const responses = [
-                "Hey there! How's it going?",
-                "Nice to meet you! Where are you from?",
-                "I'm doing great, thanks for asking!",
-                "What do you like to do for fun?",
-                "That's interesting! Tell me more about that.",
-                "I've never thought about it that way before.",
-                "Do you have any hobbies or interests?",
-                "The weather is amazing today, isn't it?",
-                "I'm really into music. What kind do you like?",
-                "Have you traveled anywhere interesting recently?",
-                "What's your favorite movie or TV show?"
-            ];
-            
-            const message = responses[Math.floor(Math.random() * responses.length)];
-            addMessage(message, 'stranger');
-        }
-        
-        function simulateVideoStrangerMessage() {
-            if (!isVideoChatActive) return;
-            
-            const responses = [
-                "Can you see me clearly?",
-                "How's the video quality on your end?",
-                "Nice to meet you! Where are you from?",
-                "What do you like to do in your free time?",
-                "That's interesting! Tell me more.",
-                "Do you come here often?",
-                "The connection seems good today!",
-                "What kind of music do you like?",
-                "Have you been using Strango long?",
-                "What brought you here today?"
-            ];
-            
-            const message = responses[Math.floor(Math.random() * responses.length)];
-            addVideoMessage(message, 'stranger');
-        }
-        
-        function addMessage(text, sender) {
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message', sender);
-            
-            const messageContent = document.createElement('div');
-            messageContent.textContent = text;
-            messageDiv.appendChild(messageContent);
-            
-            const timeDiv = document.createElement('div');
-            timeDiv.classList.add('message-time');
-            timeDiv.textContent = getCurrentTime();
-            messageDiv.appendChild(timeDiv);
-            
-            messagesContainer.appendChild(messageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-        
-        function addVideoMessage(text, sender) {
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message', sender);
-            
-            const messageContent = document.createElement('div');
-            messageContent.textContent = text;
-            messageDiv.appendChild(messageContent);
-            
-            const timeDiv = document.createElement('div');
-            timeDiv.classList.add('message-time');
-            timeDiv.textContent = getCurrentTime();
-            messageDiv.appendChild(timeDiv);
-            
-            videoMessagesContainer.appendChild(messageDiv);
-            videoMessagesContainer.scrollTop = videoMessagesContainer.scrollHeight;
-        }
-        
-        function addSystemMessage(text) {
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message', 'system');
-            
-            const messageContent = document.createElement('div');
-            messageContent.innerHTML = text;
-            messageDiv.appendChild(messageContent);
-            
-            const timeDiv = document.createElement('div');
-            timeDiv.classList.add('message-time');
-            timeDiv.textContent = getCurrentTime();
-            messageDiv.appendChild(timeDiv);
-            
-            messagesContainer.appendChild(messageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-        
-        function getCurrentTime() {
-            const now = new Date();
-            return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-        }
-        
-        // Video chat functions
-        async function startVideoChat() {
-            try {
-                isVideoChatActive = true;
-                startVideoBtn.disabled = true;
-                stopVideoBtn.disabled = false;
-                nextVideoBtn.disabled = false;
-                
-                videoStatus.classList.add('connected');
-                videoStatusText.textContent = 'Connecting...';
-                
-                // Request camera and microphone access
-                mediaStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: true, 
-                    audio: true 
-                });
-                
-                // Show local video
-                localVideo.srcObject = mediaStream;
-                localVideo.classList.remove('hidden');
-                
-                // Hide placeholder
-                videoPlaceholder.classList.add('hidden');
-                remoteVideo.classList.remove('hidden');
-                
-                // Add system message to video chat text
-                addVideoMessage('Video chat started. Waiting for connection...', 'system');
-                
-                // Simulate connection
-                setTimeout(() => {
-                    videoStatusText.textContent = 'Connected';
-                    
-                    // Simulate connecting to a stranger
-                    currentStranger = strangers[Math.floor(Math.random() * strangers.length)];
-                    
-                    // Add a fake remote video (in production this would be a real connection)
-                    remoteVideo.src = "https://placehold.co/600x400/667eea/ffffff?text=Stranger+Video";
-                    remoteVideo.classList.remove('hidden');
-                    
-                    // Add system message to video chat text
-                    addVideoMessage(`Connected with ${currentStranger.name} from ${currentStranger.country}!`, 'system');
-                    
-                    // Simulate video connection
-                    simulateVideoConnection();
-                    
-                    // Simulate initial message from stranger
-                    setTimeout(() => {
-                        simulateVideoStrangerMessage();
-                    }, 1500);
-                }, 2000);
-                
-            } catch (error) {
-                console.error('Error accessing media devices:', error);
-                videoStatusText.textContent = 'Access denied';
-                isVideoChatActive = false;
-                startVideoBtn.disabled = false;
-                stopVideoBtn.disabled = true;
-                nextVideoBtn.disabled = true;
-                
-                // Show error message
-                videoPlaceholder.innerHTML = `
-                    <div class="video-placeholder-icon">❌</div>
-                    <div>Camera access required for video chat</div>
-                    <div style="font-size: 14px; margin-top: 10px;">Please allow camera and microphone permissions</div>
-                `;
-            }
-        }
-        
-        function simulateVideoConnection() {
-            if (!isVideoChatActive) return;
-            
-            // Simulate video connection status
-            setTimeout(() => {
-                videoStatusText.textContent = 'Connected to ' + currentStranger.name;
-            }, 1000);
-        }
-        
-        function stopVideoChat() {
-            isVideoChatActive = false;
-            startVideoBtn.disabled = false;
-            stopVideoBtn.disabled = true;
-            nextVideoBtn.disabled = true;
-            
-            videoStatus.classList.remove('connected');
-            videoStatusText.textContent = 'Disconnected';
-            
-            // Stop media streams
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(track => track.stop());
-                mediaStream = null;
-            }
-            
-            // Reset video elements
-            localVideo.srcObject = null;
-            localVideo.classList.add('hidden');
-            remoteVideo.src = "";
-            remoteVideo.classList.add('hidden');
-            
-            // Show placeholder again
-            videoPlaceholder.classList.remove('hidden');
-            videoPlaceholder.innerHTML = `
-                <div class="video-placeholder-icon">🔍</div>
-                <div>Waiting for connection...</div>
-            `;
-            
-            // Clear video chat messages
-            videoMessagesContainer.innerHTML = '';
-            addVideoMessage('Video chat ended. Start a new chat to connect again.', 'system');
-        }
-        
-        function nextVideoChat() {
-            stopVideoChat();
-            setTimeout(startVideoChat, 500);
-        }
-        
-        // Initialize the app when page loads
-        window.onload = initApp;
-    </script>
-
+    
 <script>
-  let socket;
 
-  function connectWebSocket() {
-    const url = 'wss://strango-backend-6fd2.onrender.com';
-    socket = new WebSocket(url);
+function initApp() {
+    // Check if user already verified age
+    const verified = localStorage.getItem('ageVerified');
+    if (verified === 'true') {
+        document.getElementById('ageModal').classList.add('hidden');
+        document.getElementById('chatSelection').classList.remove('hidden');
+    }
 
-    socket.addEventListener("open", () => {
-      console.log("✅ Connected to WebSocket server");
-    });
+    // Simulate loading screen fade out
+    setTimeout(() => {
+        document.getElementById('loadingScreen').style.opacity = '0';
+        setTimeout(() => {
+            document.getElementById('loadingScreen').classList.add('hidden');
+        }, 500);
+    }, 2000);
 
-    socket.addEventListener("message", (event) => {
-      addMessage(event.data, "stranger");
-    });
+    // Update stats (optional or simulated)
+    setInterval(() => {
+        document.getElementById('onlineUsers').textContent = Math.floor(1200 + Math.random() * 100).toLocaleString();
+        document.getElementById('activeChats').textContent = Math.floor(600 + Math.random() * 100).toLocaleString();
+    }, 5000);
+}
 
-    socket.addEventListener("close", () => {
-      console.log("🔌 Disconnected from WebSocket server");
-    });
 
-    socket.addEventListener("error", (err) => {
-      console.error("❗ WebSocket error:", err);
-    });
-  }
+let socket;
 
-  function sendMessage() {
-    const message = messageInput.value.trim();
-    if (!message || !socket || socket.readyState !== WebSocket.OPEN) return;
-    addMessage(message, "user");
-    socket.send(message);
-    messageInput.value = "";
-  }
+function connectWebSocket() {
+  const url = 'wss://strango-backend-6fd2.onrender.com';
+  socket = new WebSocket(url);
 
-  window.onload = () => {
-    initApp();
-    connectWebSocket();
-  };
+  socket.addEventListener("open", () => {
+    console.log("✅ Connected to WebSocket server");
+  });
+
+  socket.addEventListener("message", (event) => {
+    addMessage(event.data, "stranger");
+  });
+
+  socket.addEventListener("close", () => {
+    console.log("🔌 Disconnected from WebSocket server");
+  });
+
+  socket.addEventListener("error", (err) => {
+    console.error("❗ WebSocket error:", err);
+  });
+}
+
+function sendMessage() {
+  const message = messageInput.value.trim();
+  if (!message || !socket || socket.readyState !== WebSocket.OPEN) return;
+  addMessage(message, "user");
+  socket.send(message);
+  messageInput.value = "";
+}
+
+window.onload = () => {
+  initApp();
+  connectWebSocket();
+};
 </script>
 </body>
-
-</html>
