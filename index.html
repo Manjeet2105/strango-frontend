@@ -1109,5 +1109,75 @@ window.onload = () => {
   initApp();
   connectWebSocket();
 };
+
+function addMessage(text, sender) {
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', sender);
+
+    const messageContent = document.createElement('div');
+    messageContent.textContent = text;
+    messageDiv.appendChild(messageContent);
+
+    const timeDiv = document.createElement('div');
+    timeDiv.classList.add('message-time');
+    timeDiv.textContent = getCurrentTime();
+    messageDiv.appendChild(timeDiv);
+
+    const container = document.getElementById('messagesContainer') || document.getElementById('videoMessagesContainer');
+    container.appendChild(messageDiv);
+    container.scrollTop = container.scrollHeight;
+}
+
+function addSystemMessage(text) {
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', 'system');
+
+    const messageContent = document.createElement('div');
+    messageContent.innerHTML = text;
+    messageDiv.appendChild(messageContent);
+
+    const timeDiv = document.createElement('div');
+    timeDiv.classList.add('message-time');
+    timeDiv.textContent = getCurrentTime();
+    messageDiv.appendChild(timeDiv);
+
+    const container = document.getElementById('messagesContainer') || document.getElementById('videoMessagesContainer');
+    container.appendChild(messageDiv);
+    container.scrollTop = container.scrollHeight;
+}
+
+function getCurrentTime() {
+    const now = new Date();
+    return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+}
+
+function selectChatType(type) {
+    document.getElementById('chatSelection').classList.add('hidden');
+    if (type === 'text') {
+        document.getElementById('textChatInterface').classList.remove('hidden');
+    } else {
+        document.getElementById('videoChatInterface').classList.remove('hidden');
+    }
+}
+
+function verifyAge(isOver18) {
+    if (isOver18) {
+        localStorage.setItem('ageVerified', 'true');
+        document.getElementById('ageModal').classList.add('hidden');
+        document.getElementById('chatSelection').classList.remove('hidden');
+    } else {
+        alert('You must be 18 or older to use this service. Redirecting...');
+        setTimeout(() => {
+            window.location.href = 'https://www.google.com';
+        }, 2000);
+    }
+}
+
+function backToSelection() {
+    document.getElementById('textChatInterface').classList.add('hidden');
+    document.getElementById('videoChatInterface').classList.add('hidden');
+    document.getElementById('chatSelection').classList.remove('hidden');
+}
+
 </script>
 </body>
