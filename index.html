@@ -1212,7 +1212,7 @@ function stopTextChat() {
     addSystemMessage('❌ Chat ended.');
 }
 
-function nextStrangerText() {
+function nextTextChat() {
     addSystemMessage('🔄 Searching for a new stranger...');
     if (socket) socket.close();
     connectWebSocket();
