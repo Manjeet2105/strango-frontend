@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Strango - Video & Text Chat</title>
     <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIlN0cmFuZ28iLAogICJzaG9ydF9uYW1lIjogIlN0cmFuZ28iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJ0aGVtZV9jb2xvciI6ICIjNjY3ZWVhIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjNjY3ZWVhIgp9">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>">
     <style>
@@ -1082,9 +1082,13 @@ function connectWebSocket() {
     console.log("✅ Connected to WebSocket server");
   });
 
-  socket.addEventListener("message", (event) => {
-    addMessage(event.data, "stranger");
-  });
+  socket.addEventListener("message", async (event) => {
+    let data = event.data;
+    if (data instanceof Blob) {
+      data = await data.text();
+  }
+  addMessage(data, "stranger");
+});
 
   socket.addEventListener("close", () => {
     console.log("🔌 Disconnected from WebSocket server");
