@@ -1083,14 +1083,6 @@ function connectWebSocket() {
   });
 
   socket.addEventListener("message", (event) => {
-  if (event.data === '__typing__') {
-    document.getElementById('typingIndicator').style.display = 'flex';
-    clearTimeout(window.typingTimeout);
-    window.typingTimeout = setTimeout(() => {
-      document.getElementById('typingIndicator').style.display = 'none';
-    }, 1500);
-    return;
-  }
     addMessage(event.data, "stranger");
   });
 
@@ -1109,17 +1101,6 @@ function sendMessage() {
   addMessage(message, "user");
   socket.send(message);
   messageInput.value = "";
-}
-
-messageInput.addEventListener('input', () => {
-  if (socket && socket.readyState === WebSocket.OPEN) {
-    socket.send('__typing__');
-  }
-});
-
-messageInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') sendMessage();
-
 }
 
 window.onload = () => {
