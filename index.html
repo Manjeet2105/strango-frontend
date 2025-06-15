@@ -1082,13 +1082,28 @@ function connectWebSocket() {
     console.log("✅ Connected to WebSocket server");
   });
 
-  socket.addEventListener("message", async (event) => {
-    let data = event.data;
-    if (data instanceof Blob) {
-      data = await data.text();
-  }
-  addMessage(data, "stranger");
-});
+  
+    socket.addEventListener("message", async (event) => {
+        let data = event.data;
+        if (data instanceof Blob) {
+            data = await data.text();
+        }
+        if (data === "__typing__") {
+            const indicator = document.getElementById("typingIndicator");
+            if (indicator) {
+                indicator.style.display = "flex";
+                clearTimeout(window.typingTimeout);
+                window.typingTimeout = setTimeout(() => {
+                    indicator.style.display = "none";
+                }, 1500);
+            }
+        } else {
+            const indicator = document.getElementById("typingIndicator");
+            if (indicator) indicator.style.display = "none";
+            addMessage(data, "stranger");
+        }
+    });
+    
 
   socket.addEventListener("close", () => {
     console.log("🔌 Disconnected from WebSocket server");
