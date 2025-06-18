@@ -1202,7 +1202,20 @@ function startTextChat() {
     startTextBtn.disabled = true;
     stopTextBtn.disabled = false;
     nextTextBtn.disabled = false;
+    
     messageInput.disabled = false;
+    messageInput.addEventListener('input', () => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send("__typing__");
+        }
+    });
+    messageInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+    
     sendBtn.disabled = false;
 
     textStatus.classList.remove('disconnected');
