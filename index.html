@@ -1251,5 +1251,196 @@ function nextTextChat() {
     addSystemMessage('⌛ Waiting for a stranger to connect...');
 }
 
+
+// === VIDEO CHAT SECTION ===
+
+let localStream;
+let peerConnection;
+const config = {
+    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+};
+
+function startVideoChat() {
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then(stream => {
+            localStream = stream;
+            document.getElementById('localVideo').srcObject = stream;
+            document.getElementById('localVideo').classList.remove('hidden');
+            document.getElementById('videoPlaceholder').classList.add('hidden');
+            // Placeholder for future peer connection logic
+            addSystemMessage('🎥 Local video started (demo only, no peer connected yet)');
+        })
+        .catch(err => {
+            console.error('Media error:', err);
+            alert('Could not access webcam/mic');
+        });
+
+    document.getElementById('startVideoBtn').disabled = true;
+    document.getElementById('stopVideoBtn').disabled = false;
+    document.getElementById('nextVideoBtn').disabled = false;
+
+    document.getElementById('videoStatus').classList.add('connected');
+    document.getElementById('videoStatusText').textContent = 'Connected';
+}
+
+function stopVideoChat() {
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+    }
+    document.getElementById('localVideo').classList.add('hidden');
+    document.getElementById('videoPlaceholder').classList.remove('hidden');
+
+    document.getElementById('startVideoBtn').disabled = false;
+    document.getElementById('stopVideoBtn').disabled = true;
+    document.getElementById('nextVideoBtn').disabled = true;
+
+    document.getElementById('videoStatus').classList.remove('connected');
+    document.getElementById('videoStatusText').textContent = 'Disconnected';
+
+    addSystemMessage('🛑 Video chat ended.');
+}
+
+function nextVideoChat() {
+    stopVideoChat();
+    addSystemMessage('🔄 Searching for new video stranger...');
+    startVideoChat(); // Restart stream for demo
+}
+
+
+// === FULL WEBRTC SIGNALING ===
+
+let peer;
+const videoSocketHandlers = {
+    offer: async (data) => {
+        peer = createPeer(false);
+        await peer.setRemoteDescription(new RTCSessionDescription(data.offer));
+        const answer = await peer.createAnswer();
+        await peer.setLocalDescription(answer);
+        socket.send(JSON.stringify({ type: 'answer', answer }));
+    },
+    answer: async (data) => {
+        await peer.setRemoteDescription(new RTCSessionDescription(data.answer));
+    },
+    candidate: (data) => {
+        if (peer) {
+            peer.addIceCandidate(new RTCIceCandidate(data.candidate));
+        }
+    }
+};
+
+function createPeer(isCaller) {
+    const pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
+
+    pc.onicecandidate = (event) => {
+        if (event.candidate) {
+            socket.send(JSON.stringify({ type: 'candidate', candidate: event.candidate }));
+        }
+    };
+
+    pc.ontrack = (event) => {
+        const remoteVideo = document.getElementById('remoteVideo');
+        remoteVideo.srcObject = event.streams[0];
+        remoteVideo.classList.remove('hidden');
+        document.getElementById('videoPlaceholder').classList.add('hidden');
+    };
+
+    if (localStream) {
+        for (const track of localStream.getTracks()) {
+            pc.addTrack(track, localStream);
+        }
+    }
+
+    if (isCaller) {
+        pc.onnegotiationneeded = async () => {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.send(JSON.stringify({ type: 'offer', offer }));
+        };
+    }
+
+    return pc;
+}
+
+// Overwrite startVideoChat for signaling
+function startVideoChat() {
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then(stream => {
+            localStream = stream;
+            document.getElementById('localVideo').srcObject = stream;
+            document.getElementById('localVideo').classList.remove('hidden');
+            document.getElementById('videoPlaceholder').classList.add('hidden');
+
+            peer = createPeer(true);
+        })
+        .catch(err => {
+            console.error('Media error:', err);
+            alert('Could not access webcam/mic');
+        });
+
+    document.getElementById('startVideoBtn').disabled = true;
+    document.getElementById('stopVideoBtn').disabled = false;
+    document.getElementById('nextVideoBtn').disabled = false;
+
+    document.getElementById('videoStatus').classList.add('connected');
+    document.getElementById('videoStatusText').textContent = 'Connected';
+}
+
+socket.addEventListener("message", async (event) => {
+    let data = event.data;
+    if (data instanceof Blob) data = await data.text();
+
+    if (data.startsWith("__count__")) {
+        const count = data.replace("__count__", "");
+        const onlineDisplay = document.getElementById("onlineUsers");
+        if (onlineDisplay) onlineDisplay.textContent = count;
+        return;
+    }
+
+    try {
+        const json = JSON.parse(data);
+        if (json.type && videoSocketHandlers[json.type]) {
+            videoSocketHandlers[json.type](json);
+            return;
+        }
+    } catch (_) {}
+
+    // Fallback to normal chat message
+    const indicator = document.getElementById("typingIndicator");
+    if (indicator) indicator.style.display = "none";
+    addMessage(data, "stranger");
+});
+
+
+function sendVideoMessage() {
+    const input = document.getElementById('videoMessageInput');
+    const message = input.value.trim();
+    if (!message || !socket || socket.readyState !== WebSocket.OPEN) return;
+
+    addVideoMessage(message, 'user');
+    socket.send(message);
+    input.value = '';
+}
+
+function addVideoMessage(text, sender) {
+    const container = document.getElementById('videoMessagesContainer');
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', sender);
+
+    const messageContent = document.createElement('div');
+    messageContent.textContent = text;
+    messageDiv.appendChild(messageContent);
+
+    const timeDiv = document.createElement('div');
+    timeDiv.classList.add('message-time');
+    timeDiv.textContent = getCurrentTime();
+    messageDiv.appendChild(timeDiv);
+
+    container.appendChild(messageDiv);
+    container.scrollTop = container.scrollHeight;
+}
+
 </script>
 </body>
