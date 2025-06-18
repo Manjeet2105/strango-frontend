@@ -1049,423 +1049,29 @@
 
     
 <script>
-
-function initApp() {
-    // Check if user already verified age
-    const verified = localStorage.getItem('ageVerified');
-    if (verified === 'true') {
-        document.getElementById('ageModal').classList.add('hidden');
-        document.getElementById('chatSelection').classList.remove('hidden');
-    }
-
-    // Simulate loading screen fade out
-    setTimeout(() => {
-        document.getElementById('loadingScreen').style.opacity = '0';
-        setTimeout(() => {
-            document.getElementById('loadingScreen').classList.add('hidden');
-        }, 500);
-    }, 2000);
-
-    // Update stats (optional or simulated)
-    document.getElementById('onlineUsers').textContent = 'N/A';
-document.getElementById('activeChats').textContent = 'N/A';
-}
-
-
-let socket;
-
-function connectWebSocket() {
-  const url = 'wss://strango-backend-6fd2.onrender.com';
-  socket = new WebSocket(url);
-
-  socket.addEventListener("open", () => {
-    console.log("✅ Connected to WebSocket server");
-  });
-
-  
-    socket.addEventListener("message", async (event) => {
-        let data = event.data;
-        if (data instanceof Blob) {
-            data = await data.text();
-        }
-        if (data === "__typing__") {
-            const indicator = document.getElementById("typingIndicator");
-            if (indicator) {
-                indicator.style.display = "flex";
-                clearTimeout(window.typingTimeout);
-                window.typingTimeout = setTimeout(() => {
-                    indicator.style.display = "none";
-                }, 1500);
-            }
-        } else {
-            const indicator = document.getElementById("typingIndicator");
-            if (indicator) indicator.style.display = "none";
-            addMessage(data, "stranger");
-        }
-    });
-    
-
-  socket.addEventListener("close", () => {
-    console.log("🔌 Disconnected from WebSocket server");
-  });
-
-  socket.addEventListener("error", (err) => {
-    console.error("❗ WebSocket error:", err);
-  });
-}
-
-function sendMessage() {
-  const message = messageInput.value.trim();
-  if (!message || !socket || socket.readyState !== WebSocket.OPEN) return;
-  addMessage(message, "user");
-  socket.send(message);
-  messageInput.value = "";
-}
-
-window.onload = () => {
-  initApp();
-  connectWebSocket();
-};
-
-function addMessage(text, sender) {
-    const messageDiv = document.createElement('div');
-    messageDiv.classList.add('message', sender);
-
-    const messageContent = document.createElement('div');
-    messageContent.textContent = text;
-    messageDiv.appendChild(messageContent);
-
-    const timeDiv = document.createElement('div');
-    timeDiv.classList.add('message-time');
-    timeDiv.textContent = getCurrentTime();
-    messageDiv.appendChild(timeDiv);
-
-    const container = document.getElementById('messagesContainer') || document.getElementById('videoMessagesContainer');
-    container.appendChild(messageDiv);
-    container.scrollTop = container.scrollHeight;
-}
-
-function addSystemMessage(text) {
-    const messageDiv = document.createElement('div');
-    messageDiv.classList.add('message', 'system');
-
-    const messageContent = document.createElement('div');
-    messageContent.innerHTML = text;
-    messageDiv.appendChild(messageContent);
-
-    const timeDiv = document.createElement('div');
-    timeDiv.classList.add('message-time');
-    timeDiv.textContent = getCurrentTime();
-    messageDiv.appendChild(timeDiv);
-
-    const container = document.getElementById('messagesContainer') || document.getElementById('videoMessagesContainer');
-    container.appendChild(messageDiv);
-    container.scrollTop = container.scrollHeight;
-}
-
-function getCurrentTime() {
-    const now = new Date();
-    return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-}
-
-function selectChatType(type) {
-    document.getElementById('chatSelection').classList.add('hidden');
-    if (type === 'text') {
-        document.getElementById('textChatInterface').classList.remove('hidden');
-    } else {
-        document.getElementById('videoChatInterface').classList.remove('hidden');
-    }
-}
-
-function verifyAge(isOver18) {
-    if (isOver18) {
-        localStorage.setItem('ageVerified', 'true');
-        document.getElementById('ageModal').classList.add('hidden');
-        document.getElementById('chatSelection').classList.remove('hidden');
-    } else {
-        alert('You must be 18 or older to use this service. Redirecting...');
-        setTimeout(() => {
-            window.location.href = 'https://www.google.com';
-        }, 2000);
-    }
-}
-
-function backToSelection() {
-    document.getElementById('textChatInterface').classList.add('hidden');
-    document.getElementById('videoChatInterface').classList.add('hidden');
-    document.getElementById('chatSelection').classList.remove('hidden');
-}
-
-
-function startTextChat() {
-    isTextChatActive = true;
-    startTextBtn.disabled = true;
-    stopTextBtn.disabled = false;
-    nextTextBtn.disabled = false;
-    
-    messageInput.disabled = false;
-    messageInput.addEventListener('input', () => {
-        if (socket && socket.readyState === WebSocket.OPEN) {
-            socket.send("__typing__");
-        }
-    });
-    messageInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
-    
-    sendBtn.disabled = false;
-
-    textStatus.classList.remove('disconnected');
-    textStatus.classList.add('connected');
-    textStatusText.textContent = 'Connected';
-
-    messagesContainer.innerHTML = '';
-    addSystemMessage('🎉 Welcome to Strango Text Chat!');
-    addSystemMessage('Click "Start Chat" below to connect with a random stranger!');
-}
-
-function stopTextChat() {
-    isTextChatActive = false;
-    if (socket) socket.close();
-
-    startTextBtn.disabled = false;
-    stopTextBtn.disabled = true;
-    nextTextBtn.disabled = true;
-    messageInput.disabled = true;
-    sendBtn.disabled = true;
-
-    textStatus.classList.remove('connected');
-    textStatus.classList.add('disconnected');
-    textStatusText.textContent = 'Disconnected';
-
-    addSystemMessage('❌ Chat ended.');
-}
-
-function nextTextChat() {
-    addSystemMessage('🔄 Searching for a new stranger...');
-    if (socket) socket.close();
-    connectWebSocket();
-    addSystemMessage('⌛ Waiting for a stranger to connect...');
-}
-
-
-// === VIDEO CHAT SECTION ===
-
-let localStream;
-let peerConnection;
-const config = {
-    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-};
-
-function startVideoChat() {
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        .then(stream => {
-            localStream = stream;
-            document.getElementById('localVideo').srcObject = stream;
-            document.getElementById('localVideo').classList.remove('hidden');
-            document.getElementById('videoPlaceholder').classList.add('hidden');
-            // Placeholder for future peer connection logic
-            addSystemMessage('🎥 Local video started (demo only, no peer connected yet)');
-        })
-        .catch(err => {
-            console.error('Media error:', err);
-            alert('Could not access webcam/mic');
-        });
-
-    document.getElementById('startVideoBtn').disabled = true;
-    document.getElementById('stopVideoBtn').disabled = false;
-    document.getElementById('nextVideoBtn').disabled = false;
-
-    document.getElementById('videoStatus').classList.add('connected');
-    document.getElementById('videoStatusText').textContent = 'Connected';
-}
-
-function stopVideoChat() {
-    if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-        localStream = null;
-    }
-    document.getElementById('localVideo').classList.add('hidden');
-    document.getElementById('videoPlaceholder').classList.remove('hidden');
-
-    document.getElementById('startVideoBtn').disabled = false;
-    document.getElementById('stopVideoBtn').disabled = true;
-    document.getElementById('nextVideoBtn').disabled = true;
-
-    document.getElementById('videoStatus').classList.remove('connected');
-    document.getElementById('videoStatusText').textContent = 'Disconnected';
-
-    addSystemMessage('🛑 Video chat ended.');
-}
-
-function nextVideoChat() {
-    stopVideoChat();
-    addSystemMessage('🔄 Searching for new video stranger...');
-    startVideoChat(); // Restart stream for demo
-}
-
-
-// === FULL WEBRTC SIGNALING ===
-
-let peer;
-const videoSocketHandlers = {
-    offer: async (data) => {
-        peer = createPeer(false);
-        await peer.setRemoteDescription(new RTCSessionDescription(data.offer));
-        const answer = await peer.createAnswer();
-        await peer.setLocalDescription(answer);
-        socket.send(JSON.stringify({ type: 'answer', answer }));
-    },
-    answer: async (data) => {
-        await peer.setRemoteDescription(new RTCSessionDescription(data.answer));
-    },
-    candidate: (data) => {
-        if (peer) {
-            peer.addIceCandidate(new RTCIceCandidate(data.candidate));
-        }
-    }
-};
-
-function createPeer(isCaller) {
-    const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-    });
-
-    pc.onicecandidate = (event) => {
-        if (event.candidate) {
-            socket.send(JSON.stringify({ type: 'candidate', candidate: event.candidate }));
-        }
-    };
-
-    pc.ontrack = (event) => {
-        const remoteVideo = document.getElementById('remoteVideo');
-        remoteVideo.srcObject = event.streams[0];
-        remoteVideo.classList.remove('hidden');
-        document.getElementById('videoPlaceholder').classList.add('hidden');
-    };
-
-    if (localStream) {
-        for (const track of localStream.getTracks()) {
-            pc.addTrack(track, localStream);
-        }
-    }
-
-    if (isCaller) {
-        pc.onnegotiationneeded = async () => {
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            socket.send(JSON.stringify({ type: 'offer', offer }));
-        };
-    }
-
-    return pc;
-}
-
-// Overwrite startVideoChat for signaling
-function startVideoChat() {
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        .then(stream => {
-            localStream = stream;
-            document.getElementById('localVideo').srcObject = stream;
-            document.getElementById('localVideo').classList.remove('hidden');
-            document.getElementById('videoPlaceholder').classList.add('hidden');
-
-            peer = createPeer(true);
-        })
-        .catch(err => {
-            console.error('Media error:', err);
-            alert('Could not access webcam/mic');
-        });
-
-    document.getElementById('startVideoBtn').disabled = true;
-    document.getElementById('stopVideoBtn').disabled = false;
-    document.getElementById('nextVideoBtn').disabled = false;
-
-    document.getElementById('videoStatus').classList.add('connected');
-    document.getElementById('videoStatusText').textContent = 'Connected';
-}
-
-socket.addEventListener("message", async (event) => {
-    let data = event.data;
-    if (data instanceof Blob) data = await data.text();
-
-    if (data.startsWith("__count__")) {
-        const count = data.replace("__count__", "");
-        const onlineDisplay = document.getElementById("onlineUsers");
-        if (onlineDisplay) onlineDisplay.textContent = count;
-        return;
-    }
-
-    try {
-        const json = JSON.parse(data);
-        if (json.type && videoSocketHandlers[json.type]) {
-            videoSocketHandlers[json.type](json);
-            return;
-        }
-    } catch (_) {}
-
-    // Fallback to normal chat message
-    const indicator = document.getElementById("typingIndicator");
-    if (indicator) indicator.style.display = "none";
-    addMessage(data, "stranger");
-});
-
-
-function sendVideoMessage() {
-    const input = document.getElementById('videoMessageInput');
-    const message = input.value.trim();
-    if (!message || !socket || socket.readyState !== WebSocket.OPEN) return;
-
-    addVideoMessage(message, 'user');
-    socket.send(message);
-    input.value = '';
-}
-
-function addVideoMessage(text, sender) {
-    const container = document.getElementById('videoMessagesContainer');
-    const messageDiv = document.createElement('div');
-    messageDiv.classList.add('message', sender);
-
-    const messageContent = document.createElement('div');
-    messageContent.textContent = text;
-    messageDiv.appendChild(messageContent);
-
-    const timeDiv = document.createElement('div');
-    timeDiv.classList.add('message-time');
-    timeDiv.textContent = getCurrentTime();
-    messageDiv.appendChild(timeDiv);
-
-    container.appendChild(messageDiv);
-    container.scrollTop = container.scrollHeight;
-}
-
-</script>
-<script>
 let socket;
 let localStream;
 let peer;
 
-// WebRTC Config
-const config = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
 const videoSocketHandlers = {
   offer: async (data) => {
     peer = createPeer(false);
     await peer.setRemoteDescription(new RTCSessionDescription(data.offer));
     const answer = await peer.createAnswer();
     await peer.setLocalDescription(answer);
-    socket.send(JSON.stringify({ type: "answer", answer }));
+    socket.send(JSON.stringify({ type: 'answer', answer }));
   },
   answer: async (data) => {
+    if (!peer) return;
     await peer.setRemoteDescription(new RTCSessionDescription(data.answer));
   },
-  candidate: (data) => {
-    if (peer) {
-      peer.addIceCandidate(new RTCIceCandidate(data.candidate));
+  candidate: async (data) => {
+    if (peer && data.candidate) {
+      await peer.addIceCandidate(new RTCIceCandidate(data.candidate));
     }
-  },
+  }
 };
 
 function createPeer(isCaller) {
@@ -1473,15 +1079,17 @@ function createPeer(isCaller) {
 
   pc.onicecandidate = (event) => {
     if (event.candidate) {
-      socket.send(JSON.stringify({ type: "candidate", candidate: event.candidate }));
+      socket.send(JSON.stringify({ type: 'candidate', candidate: event.candidate }));
     }
   };
 
   pc.ontrack = (event) => {
     const remoteVideo = document.getElementById("remoteVideo");
-    remoteVideo.srcObject = event.streams[0];
-    remoteVideo.classList.remove("hidden");
-    document.getElementById("videoPlaceholder").classList.add("hidden");
+    if (remoteVideo) {
+      remoteVideo.srcObject = event.streams[0];
+      remoteVideo.classList.remove("hidden");
+      document.getElementById("videoPlaceholder").classList.add("hidden");
+    }
   };
 
   if (localStream) {
@@ -1492,41 +1100,38 @@ function createPeer(isCaller) {
     pc.onnegotiationneeded = async () => {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      socket.send(JSON.stringify({ type: "offer", offer }));
+      socket.send(JSON.stringify({ type: 'offer', offer }));
     };
   }
 
   return pc;
 }
 
-// Init WebSocket
 function connectWebSocket() {
-  const url = 'wss://strango-backend-6fd2.onrender.com'; // Your backend
+  const url = 'wss://strango-backend-6fd2.onrender.com';
   socket = new WebSocket(url);
 
   socket.addEventListener("open", () => {
-    console.log("✅ Connected to WebSocket server");
+    console.log("✅ WebSocket connected");
   });
 
   socket.addEventListener("message", async (event) => {
     let data = event.data;
     if (data instanceof Blob) data = await data.text();
 
-    // Online count
     if (data.startsWith("__count__")) {
       const count = data.replace("__count__", "");
-      const el = document.getElementById("onlineUsers");
-      if (el) el.textContent = count;
+      const onlineDisplay = document.getElementById("onlineUsers");
+      if (onlineDisplay) onlineDisplay.textContent = count;
       return;
     }
 
-    // Typing
     if (data === "__typing__") {
       const indicators = [
         document.getElementById("typingIndicator"),
         document.getElementById("videoTypingIndicator"),
       ];
-      for (const el of indicators) {
+      indicators.forEach(el => {
         if (el) {
           el.style.display = "flex";
           clearTimeout(el._timeout);
@@ -1534,11 +1139,10 @@ function connectWebSocket() {
             el.style.display = "none";
           }, 1500);
         }
-      }
+      });
       return;
     }
 
-    // WebRTC Signaling
     try {
       const json = JSON.parse(data);
       if (json.type && videoSocketHandlers[json.type]) {
@@ -1547,73 +1151,60 @@ function connectWebSocket() {
       }
     } catch (_) {}
 
-    // Determine which chat is active
-    const textVisible = document.getElementById("textChatInterface")?.style.display !== "none";
-    if (textVisible) {
+    const isTextChat = document.getElementById("textChatInterface")?.style.display !== "none";
+    if (isTextChat) {
       addMessage(data, "stranger");
     } else {
       addVideoMessage(data, "stranger");
     }
   });
-
-  socket.addEventListener("close", () => {
-    console.log("🔌 Disconnected from WebSocket server");
-  });
-
-  socket.addEventListener("error", (err) => {
-    console.error("❗ WebSocket error:", err);
-  });
 }
 
-// ===== UI & Helper Logic =====
-function initApp() {
-  const verified = localStorage.getItem('ageVerified');
-  if (verified === 'true') {
-    document.getElementById('ageModal').classList.add('hidden');
-    document.getElementById('chatSelection').classList.remove('hidden');
+function startVideoChat() {
+  navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+    .then(stream => {
+      localStream = stream;
+      document.getElementById("localVideo").srcObject = stream;
+      document.getElementById("localVideo").classList.remove("hidden");
+      document.getElementById("videoPlaceholder").classList.add("hidden");
+      peer = createPeer(true);
+    })
+    .catch(err => {
+      console.error("Camera error:", err);
+      alert("Failed to access webcam.");
+    });
+
+  document.getElementById("startVideoBtn").disabled = true;
+  document.getElementById("stopVideoBtn").disabled = false;
+  document.getElementById("nextVideoBtn").disabled = false;
+
+  document.getElementById("videoStatus").classList.add("connected");
+  document.getElementById("videoStatusText").textContent = "Connected";
+}
+
+function stopVideoChat() {
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
   }
+  localStream = null;
+  document.getElementById("localVideo").classList.add("hidden");
+  document.getElementById("remoteVideo").classList.add("hidden");
+  document.getElementById("videoPlaceholder").classList.remove("hidden");
 
-  setTimeout(() => {
-    document.getElementById('loadingScreen').style.opacity = '0';
-    setTimeout(() => {
-      document.getElementById('loadingScreen').classList.add('hidden');
-    }, 500);
-  }, 2000);
+  document.getElementById("startVideoBtn").disabled = false;
+  document.getElementById("stopVideoBtn").disabled = true;
+  document.getElementById("nextVideoBtn").disabled = true;
+
+  document.getElementById("videoStatus").classList.remove("connected");
+  document.getElementById("videoStatusText").textContent = "Disconnected";
+
+  addVideoMessage("🛑 Video chat ended.", "system");
 }
 
-function addMessage(text, sender) {
-  const container = document.getElementById('messagesContainer');
-  const msg = createMessageElement(text, sender);
-  container.appendChild(msg);
-  container.scrollTop = container.scrollHeight;
-}
-
-function addVideoMessage(text, sender) {
-  const container = document.getElementById('videoMessagesContainer');
-  const msg = createMessageElement(text, sender);
-  container.appendChild(msg);
-  container.scrollTop = container.scrollHeight;
-}
-
-function createMessageElement(text, sender) {
-  const div = document.createElement('div');
-  div.classList.add('message', sender);
-  div.innerHTML = `<div>${text}</div><div class="message-time">${getCurrentTime()}</div>`;
-  return div;
-}
-
-function addSystemMessage(text) {
-  const container = document.getElementById('messagesContainer');
-  const div = document.createElement('div');
-  div.classList.add('message', 'system');
-  div.innerHTML = `<div>${text}</div><div class="message-time">${getCurrentTime()}</div>`;
-  container.appendChild(div);
-  container.scrollTop = container.scrollHeight;
-}
-
-function getCurrentTime() {
-  const now = new Date();
-  return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+function nextVideoChat() {
+  stopVideoChat();
+  addVideoMessage("🔄 Connecting to new stranger...", "system");
+  startVideoChat();
 }
 
 function sendMessage() {
@@ -1634,52 +1225,47 @@ function sendVideoMessage() {
   input.value = "";
 }
 
-// ====== Video Chat Controls ======
-function startVideoChat() {
-  navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-    .then(stream => {
-      localStream = stream;
-      document.getElementById("localVideo").srcObject = stream;
-      document.getElementById("localVideo").classList.remove("hidden");
-      document.getElementById("videoPlaceholder").classList.add("hidden");
-      peer = createPeer(true);
-    }).catch(err => {
-      alert("Could not access webcam/microphone.");
-      console.error(err);
-    });
-
-  document.getElementById("startVideoBtn").disabled = true;
-  document.getElementById("stopVideoBtn").disabled = false;
-  document.getElementById("nextVideoBtn").disabled = false;
-  document.getElementById("videoStatus").classList.add("connected");
-  document.getElementById("videoStatusText").textContent = "Connected";
+function addMessage(text, sender) {
+  const container = document.getElementById("messagesContainer");
+  const msg = createMessageElement(text, sender);
+  container.appendChild(msg);
+  container.scrollTop = container.scrollHeight;
 }
 
-function stopVideoChat() {
-  if (localStream) {
-    localStream.getTracks().forEach(track => track.stop());
-    localStream = null;
+function addVideoMessage(text, sender) {
+  const container = document.getElementById("videoMessagesContainer");
+  const msg = createMessageElement(text, sender);
+  container.appendChild(msg);
+  container.scrollTop = container.scrollHeight;
+}
+
+function createMessageElement(text, sender) {
+  const div = document.createElement('div');
+  div.classList.add('message', sender);
+  div.innerHTML = `<div>${text}</div><div class="message-time">${getCurrentTime()}</div>`;
+  return div;
+}
+
+function getCurrentTime() {
+  const now = new Date();
+  return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+}
+
+function initApp() {
+  const verified = localStorage.getItem('ageVerified');
+  if (verified === 'true') {
+    document.getElementById('ageModal').classList.add('hidden');
+    document.getElementById('chatSelection').classList.remove('hidden');
   }
-  document.getElementById("localVideo").classList.add("hidden");
-  document.getElementById("remoteVideo").classList.add("hidden");
-  document.getElementById("videoPlaceholder").classList.remove("hidden");
 
-  document.getElementById("startVideoBtn").disabled = false;
-  document.getElementById("stopVideoBtn").disabled = true;
-  document.getElementById("nextVideoBtn").disabled = true;
-  document.getElementById("videoStatus").classList.remove("connected");
-  document.getElementById("videoStatusText").textContent = "Disconnected";
-
-  addVideoMessage("🛑 Video chat ended.", "system");
+  setTimeout(() => {
+    document.getElementById('loadingScreen').style.opacity = '0';
+    setTimeout(() => {
+      document.getElementById('loadingScreen').classList.add('hidden');
+    }, 500);
+  }, 2000);
 }
 
-function nextVideoChat() {
-  stopVideoChat();
-  addVideoMessage("🔄 Connecting to new stranger...", "system");
-  startVideoChat();
-}
-
-// ====== INIT ON LOAD ======
 window.onload = () => {
   initApp();
   connectWebSocket();
