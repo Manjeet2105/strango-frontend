@@ -1075,7 +1075,12 @@ document.getElementById('activeChats').textContent = 'N/A';
 let socket;
 
 function connectWebSocket() {
-  const url = 'wss://strango-backend-6fd2.onrender.com';
+  // Use correct URL depending on environment
+  const url =
+    window.location.hostname === "localhost"
+      ? "ws://localhost:3000"
+      : `wss://${window.location.host}`;
+  socket = new WebSocket(url);
   socket = new WebSocket(url);
 
   socket.addEventListener("open", () => {
